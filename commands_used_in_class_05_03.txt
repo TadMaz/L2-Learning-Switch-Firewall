@@ -1,0 +1,105 @@
+# Create a simple topology so that we can inspect switch flow tables
+# No --controller remote defaults to the mininet simple controller that performs 
+# Learning switch behaviour
+
+$ sudo mn --topo single,3 --mac --switch ovsk 
+
+# dpctl is a tool that allows us to see whats going on at a switch, also to send some flow entries
+# see tree ports ports
+
+mininet> dpctl show 
+
+# inspect flow table entries
+
+mininet> dpctl dump-flows 
+
+# see no flow entries
+
+# start a ping 
+
+mininet> h1 ping h2
+
+# inspect flow table entries
+
+mininet> dpctl dump-flows 
+
+# see flow entries. Why?
+
+#  Now lets try to act as a controller
+#  Will create a switch with three hosts connected to an open vswitch switch and add a 
+#  remote controller
+
+$ sudo mn --topo single,3 --mac --switch ovsk --controller remote
+
+# Try to ping between hosts
+
+mininet> h1 ping h2
+
+# information about switch
+
+mininet> dpctl show 
+
+# no flow table entries
+
+# we could add the flow table entries
+# adding flow table entries
+
+mininet> dpctl add-flow in_port=1,idle_timeout=1000,actions=output:2
+mininet> dpctl add-flow in_port=2,idle_timeout=1000,actions=output:1
+
+# inspect flow table entries
+
+mininet> dpctl dump-flows 
+
+# see now that there are flow entries that allow the switch to forward packets. 
+
+# quit and restart network
+# start controller
+# start network
+
+
+$ sudo mn --topo single,3 --mac --switch ovsk --controller remote
+
+# in ~/pox folder
+
+$ ./pox.py forwarding.hub
+
+$ gedit pox/pox/forwarding/hub.py
+
+# review _handle_ConnectionUp(event)
+# Only rule to install flood to all connection switches
+
+# inspect flow table entries
+
+mininet> dpctl dump-flows 
+
+# restart topology
+
+$ sudo mn --topo single,3 --mac --switch ovsk --controller remote
+
+# inspect l2_learning
+
+$ gedit pox/pox/forwarding/l2_learning.py
+
+# start l2 learning switch controller
+# in ~/pox
+
+$ ./pox.py forwarding.l2_forwarding
+
+# inspect flow table entries, before, during and after pings. 
+
+mininet> dpctl dump-flows 
+
+
+# Pox is modular so if you would like to implement the firewall logic in a seperate file, the 
+# firewall.py file, you would then need to place this file in the approriate sub directory in
+# your pox folder. I.e. if I implemented my logic in firewall.py without changing anything in the
+# l2_learning.py file I would start the controller as follows:
+
+$ ./pox.py forwarding.l2_learning misc.firewall.py
+
+# Assuming that I have placed the file in the ~/pox/misc folder. 
+
+# The second option is just to  change / modify the logic in l2_learning.py and run the controller as before.
+
+
